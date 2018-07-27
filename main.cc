@@ -84,10 +84,10 @@ static void triangle(CImg<unsigned char> &fb, CImg<float> &zb,
 	glm::ivec3 s_pos2 = w2s_pos(fb, v2.pos);
 
 	glm::ivec3 bboxmin, bboxmax;
-	bboxmin.x = std::min(std::min(std::min(fb.width() - 1, s_pos0.x), s_pos1.x), s_pos2.x);
-	bboxmin.y = std::min(std::min(std::min(fb.height() - 1, s_pos0.y), s_pos1.y), s_pos2.y);
-	bboxmax.x = std::max(std::max(std::max(0, s_pos0.x), s_pos1.x), s_pos2.x);
-	bboxmax.y = std::max(std::max(std::max(0, s_pos0.y), s_pos1.y), s_pos2.y);
+	bboxmin.x = std::min({s_pos0.x, s_pos1.x, s_pos2.x, fb.width() - 1});
+	bboxmin.y = std::min({s_pos0.y, s_pos1.y, s_pos2.y, fb.height() - 1});
+	bboxmax.x = std::max({0, s_pos0.x, s_pos1.x, s_pos2.x});
+	bboxmax.y = std::max({0, s_pos0.y, s_pos1.y, s_pos2.y});
 
 	glm::ivec3 p;
 	for (p.x = bboxmin.x; p.x <= bboxmax.x; p.x++) {
