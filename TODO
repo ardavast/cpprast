@@ -1,0 +1,11 @@
+TODO:
+    - fix headers
+    - fix fps title
+    - perspective projection
+    - clipping
+    - camera
+    - make, premake
+
+DONE:
+    - move to SDL
+    - timer

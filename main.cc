@@ -1,58 +1,70 @@
-#include <CImg.h>
+#include <algorithm>
+
+#include <SDL2/SDL.h>
 #include <glm/glm.hpp>
 
+#include "display.h"
+#include "timer.h"
+#include "buffer2d.h"
+#include "texture.h"
 #include "mesh.h"
 
-using namespace cimg_library;
-
-static glm::ivec3 w2s_pos(CImg<unsigned char> &img, glm::vec3 w_pos);
-static glm::ivec2 w2s_uv(CImg<unsigned char> &img, glm::vec2 w_uv);
-
-static glm::vec3 barycentric(glm::vec3 sp0, glm::vec3 sp1, glm::vec3 sp2, glm::vec3 P);
-static inline float interp(glm::vec3 bc_screen, float v0, float v1, float v2);
-static inline glm::vec2 interp(glm::vec3 bc_screen, glm::vec2 v0, glm::vec2 v1, glm::vec2 v2);
-static void triangle(CImg<unsigned char> &fb, CImg<float> &zb,
-                     vertex v0, vertex v1, vertex v2, CImg<unsigned char> &texture);
+glm::ivec3 w2s_pos(Display &fb, glm::vec3 wv0);
+glm::vec3 barycentric(glm::vec3 s_pos0, glm::vec3 s_pos1, glm::vec3 s_pos2, glm::vec3 p);
+float interp(glm::vec3 bc_screen, float v0, float v1, float v2);
+void triangle(Display &fb, Buffer2D &zb, vertex &v0, vertex &v1, vertex &v2, Texture &diffuse);
 
 int main(void)
 {
 	int width = 800;
-	int height = 800;
-	CImg<unsigned char> fb(width, height, 1, 3, 0);
-	CImg<float> zb(width, height, 1, 1, -1.0f);
+	int height = 600;
+
+	Display fb(width, height, "cpprast");
+	Buffer2D zb(width, height);
+	Timer timer;
+
 	Mesh mesh("african_head.obj");
-	CImg<unsigned char> diffuse("african_head_diffuse.tga");
-	diffuse.mirror('y');
+	Texture diffuse("african_head_diffuse.tga", fb.fmt);
 
-	for (int i = 0; i < mesh.vertices.size(); i += 3) {
-		triangle(fb, zb,
-		         mesh.vertices[i], mesh.vertices[i + 1], mesh.vertices[i + 2],
-		         diffuse);
+	SDL_Event e;
+	bool quit = false;
+	for (;;) {
+		if (quit) {
+			break;
+		}
+
+		timer.reset();
+
+		while (SDL_PollEvent(&e) != 0) {
+			if (e.type == SDL_QUIT) {
+			    quit = true;
+			}
+		}
+
+		fb.clear(0, 0, 0);
+		zb.clear(-1.0f);
+
+		for (int i = 0; i < mesh.vertices.size() - 1; i += 3) {
+			triangle(fb, zb, mesh.vertices[i], mesh.vertices[i + 1],
+			         mesh.vertices[i + 2], diffuse);
+		}
+
+		fb.update();
+		timer.throttle(33);
+		fb.update_title(timer.get());
 	}
-
-	fb.mirror('y');
-	fb.save_png("test.png");
 
 	return (0);
 }
 
-static glm::ivec3 w2s_pos(CImg<unsigned char> &img, glm::vec3 w_pos)
-{
-	glm::ivec3 s_pos;
-	s_pos.x = int((w_pos.x + 1.0) * ((img.width() - 1.0) / 2.0));
-	s_pos.y = int((w_pos.y + 1.0) * ((img.height() - 1.0) / 2.0));
-	return s_pos;
+glm::ivec3 w2s_pos(Display &fb, glm::vec3 wv0) {
+	glm::ivec3 sv0;
+	sv0.x = int((wv0.x + 1.0) * ((fb.width - 1.0) / 2.0));
+	sv0.y = int((wv0.y + 1.0) * ((fb.height - 1.0) / 2.0));
+	return sv0;
 }
 
-static glm::ivec2 w2s_uv(CImg<unsigned char> &img, glm::vec2 w_uv)
-{
-	glm::ivec2 s_uv;
-	s_uv.x = int((w_uv.x) * (img.width() - 1.0));
-	s_uv.y = int((w_uv.y) * (img.height() - 1.0));
-	return s_uv;
-}
-
-static glm::vec3 barycentric(glm::vec3 s_pos0, glm::vec3 s_pos1, glm::vec3 s_pos2, glm::vec3 p)
+glm::vec3 barycentric(glm::ivec3 &s_pos0, glm::ivec3 &s_pos1, glm::ivec3 &s_pos2, glm::ivec3 &p)
 {
 	glm::vec3 u = glm::cross(glm::vec3(s_pos2.x - s_pos0.x, s_pos1.x - s_pos0.x, s_pos0.x - p.x),
 	                         glm::vec3(s_pos2.y - s_pos0.y, s_pos1.y - s_pos0.y, s_pos0.y - p.y));
@@ -64,28 +76,25 @@ static glm::vec3 barycentric(glm::vec3 s_pos0, glm::vec3 s_pos1, glm::vec3 s_pos
 	return glm::vec3(1.0f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
 }
 
-static inline float interp(glm::vec3 bc_screen, float v0, float v1, float v2)
+float interp(glm::vec3 bc_screen, float v0, float v1, float v2)
 {
 	return (v0 * bc_screen.x + v1 * bc_screen.y + v2 * bc_screen.z);
 }
 
-
-static inline glm::vec2 interp(glm::vec3 bc_screen, glm::vec2 v0, glm::vec2 v1, glm::vec2 v2)
+glm::vec2 interp(glm::vec3 bc_screen, glm::vec2 v0, glm::vec2 v1, glm::vec2 v2)
 {
 	return (v0 * bc_screen.x + v1 * bc_screen.y + v2 * bc_screen.z);
 }
 
-
-static void triangle(CImg<unsigned char> &fb, CImg<float> &zb,
-                     vertex v0, vertex v1, vertex v2, CImg<unsigned char> &texture)
+void triangle(Display &fb, Buffer2D &zb, vertex &v0, vertex &v1, vertex &v2, Texture &diffuse)
 {
 	glm::ivec3 s_pos0 = w2s_pos(fb, v0.pos);
 	glm::ivec3 s_pos1 = w2s_pos(fb, v1.pos);
 	glm::ivec3 s_pos2 = w2s_pos(fb, v2.pos);
 
 	glm::ivec3 bboxmin, bboxmax;
-	bboxmin.x = std::min({s_pos0.x, s_pos1.x, s_pos2.x, fb.width() - 1});
-	bboxmin.y = std::min({s_pos0.y, s_pos1.y, s_pos2.y, fb.height() - 1});
+	bboxmin.x = std::min({s_pos0.x, s_pos1.x, s_pos2.x, fb.width - 1});
+	bboxmin.y = std::min({s_pos0.y, s_pos1.y, s_pos2.y, fb.height - 1});
 	bboxmax.x = std::max({0, s_pos0.x, s_pos1.x, s_pos2.x});
 	bboxmax.y = std::max({0, s_pos0.y, s_pos1.y, s_pos2.y});
 
@@ -98,15 +107,11 @@ static void triangle(CImg<unsigned char> &fb, CImg<float> &zb,
 			}
 
 			float z = interp(bc_screen, v0.pos.z, v1.pos.z, v2.pos.z);
-			if (z > zb(p.x, p.y, 0, 0)) {
-				zb(p.x, p.y) = z;
-				glm::ivec2 uv = w2s_uv(texture, interp(bc_screen, v0.uv, v1.uv, v2.uv));
+			if (z > zb.get(p.x, p.y)) {
+				zb.set(p.x, p.y, z);
 
-				unsigned char color[3];
-				color[0] = texture(uv[0], uv[1], 0, 0);
-				color[1] = texture(uv[0], uv[1], 0, 1);
-				color[2] = texture(uv[0], uv[1], 0, 2);
-				fb.draw_point(p.x, p.y, color);
+				glm::vec2 uv = interp(bc_screen, v0.uv, v1.uv, v2.uv);
+				fb.pixel(p.x, p.y, diffuse.get(uv));
 			}
 		}
 	}
