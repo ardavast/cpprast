@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <string.h>
+#include <cstring>
 
 #include <SDL2/SDL.h>
 
@@ -31,7 +31,7 @@ Display::Display(int width, int height, const char *title)
 	this->height = height;
 
 	title0 = title;
-	title_len = sizeof(char) * (strlen(title) + 20);
+	title_len = sizeof(char) * (strlen(title) + 16);
 	this->title = (char *)malloc(title_len);
 	memset(this->title, '\0', title_len);
 	snprintf(this->title, title_len, "%s", title);
@@ -64,7 +64,7 @@ void Display::update_title(Uint32 ms)
 		ms = 1;
 	}
 
-	snprintf(this->title, title_len, "%s [%dms %d fps]", title0, ms, (int)(1000.0 / ms));
+	snprintf(this->title, title_len, "%s [%dms %d fps]", title0, ms, 1000/ms);
 	SDL_SetWindowTitle(window, this->title);
 }
 

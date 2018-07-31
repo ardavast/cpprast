@@ -18,6 +18,7 @@ Mesh::Mesh(std::string const pathname)
 		vertex.pos.x = mesh->mVertices[i].x;
 		vertex.pos.y = mesh->mVertices[i].y;
 		vertex.pos.z = mesh->mVertices[i].z;
+		vertex.pos.w = 1.0f;
 
 		vertex.uv[0] = mesh->mTextureCoords[0][i][0];
 		vertex.uv[1] = mesh->mTextureCoords[0][i][1];

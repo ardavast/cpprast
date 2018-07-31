@@ -4,10 +4,11 @@
 #include <glm/glm.hpp>
 
 #include "display.h"
-#include "timer.h"
 #include "buffer2d.h"
-#include "texture.h"
+#include "timer.h"
+#include "camera.h"
 #include "mesh.h"
+#include "texture.h"
 
 glm::ivec3 w2s_pos(Display &fb, glm::vec3 wv0);
 glm::vec3 barycentric(glm::vec3 s_pos0, glm::vec3 s_pos1, glm::vec3 s_pos2, glm::vec3 p);
@@ -22,9 +23,16 @@ int main(void)
 	Display fb(width, height, "cpprast");
 	Buffer2D zb(width, height);
 	Timer timer;
+	Camera camera;
 
 	Mesh mesh("african_head.obj");
 	Texture diffuse("african_head_diffuse.tga", fb.fmt);
+	glm::mat4 M = glm::mat4(0.8f, 0.0f, 0.0f, 0.0f, 
+	                        0.0f, 0.8f, 0.0f, 0.0f, 
+	                        0.0f, 0.0f, 0.8f, 0.0f, 
+	                        0.0f, 0.0f, 0.0f, 1.0f); 
+
+	vertex *vbuffer = (vertex *)malloc(sizeof(vertex) * mesh.vertices.size());
 
 	SDL_Event e;
 	bool quit = false;
@@ -41,12 +49,25 @@ int main(void)
 			}
 		}
 
+		glm::mat4 MVP = M * camera.transform;
+
 		fb.clear(0, 0, 0);
 		zb.clear(-1.0f);
 
+		//FIXME Why is this needed?
+		memset(vbuffer, '\0', sizeof(vertex) * mesh.vertices.size()); 
+
+		for (int i = 0; i < mesh.vertices.size() - 1; i++) {
+			vbuffer[i].pos = mesh.vertices[i].pos * MVP;
+			vbuffer[i].pos.x /= vbuffer[i].pos.w;
+			vbuffer[i].pos.y /= vbuffer[i].pos.w;
+			vbuffer[i].pos.z /= vbuffer[i].pos.w;
+			vbuffer[i].uv = mesh.vertices[i].uv;
+		}
+
 		for (int i = 0; i < mesh.vertices.size() - 1; i += 3) {
-			triangle(fb, zb, mesh.vertices[i], mesh.vertices[i + 1],
-			         mesh.vertices[i + 2], diffuse);
+			triangle(fb, zb, vbuffer[i], vbuffer[i + 1],
+			         vbuffer[i + 2], diffuse);
 		}
 
 		fb.update();

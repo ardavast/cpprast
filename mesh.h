@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 
 struct vertex {
-	glm::vec3 pos;
+	glm::vec4 pos;
 	glm::vec2 uv;
 };
 

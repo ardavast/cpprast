@@ -1,6 +1,6 @@
 TODO:
+    - input
     - fix headers
-    - fix fps title
     - perspective projection
     - clipping
     - camera
@@ -9,3 +9,4 @@ TODO:
 DONE:
     - move to SDL
     - timer
+    - fix fps title
