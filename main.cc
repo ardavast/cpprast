@@ -18,7 +18,7 @@ void triangle(Display &fb, Buffer2D &zb, vertex &v0, vertex &v1, vertex &v2, Tex
 int main(void)
 {
 	int width = 800;
-	int height = 600;
+	int height = 800;
 
 	Display fb(width, height, "cpprast");
 	Buffer2D zb(width, height);
@@ -27,10 +27,21 @@ int main(void)
 
 	Mesh mesh("african_head.obj");
 	Texture diffuse("african_head_diffuse.tga", fb.fmt);
-	glm::mat4 M = glm::mat4(0.8f, 0.0f, 0.0f, 0.0f, 
-	                        0.0f, 0.8f, 0.0f, 0.0f, 
-	                        0.0f, 0.0f, 0.8f, 0.0f, 
-	                        0.0f, 0.0f, 0.0f, 1.0f); 
+
+	glm::mat4 M = glm::mat4(0.5f, 0.0f, 0.0f, 0.0f,
+	                        0.0f, 0.5f, 0.0f, 0.0f,
+	                        0.0f, 0.0f, 0.5f, 0.0f,
+	                        0.0f, 0.0f, 0.0f, 1.0f);
+
+	//glm::mat4 V = glm::mat4(1.0f, 0.0f, 0.0f,  0.0f,
+	//                        0.0f, 1.0f, 0.0f,  0.0f,
+	//                        0.0f, 0.0f, 1.0f,  3.0f,
+	//                        0.0f, 0.0f, 0.0f,  1.0f);
+
+	//glm::mat4 P = glm::mat4(1.0f, 0.0f,  0.0f,      0.0f,
+	//                        0.0f, 1.0f,  0.0f,      0.0f,
+	//                        0.0f, 0.0f,  1.0f,      0.0f,
+	//                        0.0f, 0.0f, -1.0/3.0f, 1.0f);
 
 	vertex *vbuffer = (vertex *)malloc(sizeof(vertex) * mesh.vertices.size());
 
@@ -49,19 +60,20 @@ int main(void)
 			}
 		}
 
-		glm::mat4 MVP = M * camera.transform;
+		//glm::mat4 MVP = P * V * M;
+		glm::mat4 MVP = M;
 
 		fb.clear(0, 0, 0);
 		zb.clear(-1.0f);
 
 		//FIXME Why is this needed?
-		memset(vbuffer, '\0', sizeof(vertex) * mesh.vertices.size()); 
+		memset(vbuffer, '\0', sizeof(vertex) * mesh.vertices.size());
 
 		for (int i = 0; i < mesh.vertices.size() - 1; i++) {
 			vbuffer[i].pos = mesh.vertices[i].pos * MVP;
-			vbuffer[i].pos.x /= vbuffer[i].pos.w;
-			vbuffer[i].pos.y /= vbuffer[i].pos.w;
-			vbuffer[i].pos.z /= vbuffer[i].pos.w;
+			vbuffer[i].pos.x *= vbuffer[i].pos.z;
+			vbuffer[i].pos.y *= vbuffer[i].pos.z;
+			//vbuffer[i].pos.z /= vbuffer[i].pos.w;
 			vbuffer[i].uv = mesh.vertices[i].uv;
 		}
 
